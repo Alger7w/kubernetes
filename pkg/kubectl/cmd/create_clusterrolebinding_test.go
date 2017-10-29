@@ -31,6 +31,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/rest/fake"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 )
 
@@ -77,7 +78,7 @@ func TestCreateClusterRoleBinding(t *testing.T) {
 	tf.Printer = &testPrinter{}
 	tf.Client = &ClusterRoleBindingRESTClient{
 		RESTClient: &fake.RESTClient{
-			APIRegistry:          api.Registry,
+			GroupVersion:         legacyscheme.Registry.GroupOrDie(api.GroupName).GroupVersion,
 			NegotiatedSerializer: ns,
 			Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 				switch p, m := req.URL.Path, req.Method; {

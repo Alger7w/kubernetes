@@ -33,8 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	versionedfake "k8s.io/client-go/kubernetes/fake"
-	federation "k8s.io/kubernetes/federation/apis/federation/v1beta1"
-	fedfake "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset/fake"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -776,7 +774,7 @@ func TestPersistentVolumeDescriber(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: "bar"},
 			Spec: api.PersistentVolumeSpec{
 				PersistentVolumeSource: api.PersistentVolumeSource{
-					RBD: &api.RBDVolumeSource{},
+					RBD: &api.RBDPersistentVolumeSource{},
 				},
 			},
 		},
@@ -844,40 +842,6 @@ func TestDescribeDeployment(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if !strings.Contains(out, "bar") || !strings.Contains(out, "foo") || !strings.Contains(out, "Containers:") || !strings.Contains(out, "mytest-image:latest") {
-		t.Errorf("unexpected out: %s", out)
-	}
-}
-
-func TestDescribeCluster(t *testing.T) {
-	cluster := federation.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "foo",
-			ResourceVersion: "4",
-			Labels: map[string]string{
-				"name": "foo",
-			},
-		},
-		Spec: federation.ClusterSpec{
-			ServerAddressByClientCIDRs: []federation.ServerAddressByClientCIDR{
-				{
-					ClientCIDR:    "0.0.0.0/0",
-					ServerAddress: "localhost:8888",
-				},
-			},
-		},
-		Status: federation.ClusterStatus{
-			Conditions: []federation.ClusterCondition{
-				{Type: federation.ClusterReady, Status: v1.ConditionTrue},
-			},
-		},
-	}
-	fake := fedfake.NewSimpleClientset(&cluster)
-	d := ClusterDescriber{Interface: fake}
-	out, err := d.Describe("any", "foo", printers.DescriberSettings{ShowEvents: true})
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if !strings.Contains(out, "foo") {
 		t.Errorf("unexpected out: %s", out)
 	}
 }
@@ -1657,6 +1621,43 @@ func TestDescribeResourceQuota(t *testing.T) {
 			t.Errorf("expected to find %q in output: %q", expected, out)
 		}
 	}
+}
+
+func TestDescribeServiceAccount(t *testing.T) {
+	fake := fake.NewSimpleClientset(&api.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bar",
+			Namespace: "foo",
+		},
+		Secrets: []api.ObjectReference{
+			{
+				Name: "test-objectref",
+			},
+		},
+		ImagePullSecrets: []api.LocalObjectReference{
+			{
+				Name: "test-local-ref",
+			},
+		},
+	})
+	c := &describeClient{T: t, Namespace: "foo", Interface: fake}
+	d := ServiceAccountDescriber{c}
+	out, err := d.Describe("foo", "bar", printers.DescriberSettings{ShowEvents: true})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	expectedOut := `Name:                bar
+Namespace:           foo
+Labels:              <none>
+Annotations:         <none>
+Image pull secrets:  test-local-ref (not found)
+Mountable secrets:   test-objectref (not found)
+Tokens:              <none>
+Events:              <none>` + "\n"
+	if out != expectedOut {
+		t.Errorf("expected : %q\n but got output:\n %q", expectedOut, out)
+	}
+
 }
 
 // boolPtr returns a pointer to a bool

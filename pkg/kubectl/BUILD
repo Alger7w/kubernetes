@@ -10,7 +10,6 @@ go_test(
     name = "go_default_test",
     srcs = [
         "autoscale_test.go",
-        "cluster_test.go",
         "clusterrolebinding_test.go",
         "configmap_test.go",
         "delete_test.go",
@@ -36,8 +35,8 @@ go_test(
     importpath = "k8s.io/kubernetes/pkg/kubectl",
     library = ":go_default_library",
     deps = [
-        "//federation/apis/federation/v1beta1:go_default_library",
         "//pkg/api:go_default_library",
+        "//pkg/api/legacyscheme:go_default_library",
         "//pkg/api/testapi:go_default_library",
         "//pkg/api/testing:go_default_library",
         "//pkg/apis/apps:go_default_library",
@@ -84,7 +83,6 @@ go_library(
         "apply.go",
         "autoscale.go",
         "bash_comp_utils.go",
-        "cluster.go",
         "clusterrolebinding.go",
         "configmap.go",
         "delete.go",
@@ -116,8 +114,8 @@ go_library(
     ],
     importpath = "k8s.io/kubernetes/pkg/kubectl",
     deps = [
-        "//federation/apis/federation/v1beta1:go_default_library",
         "//pkg/api:go_default_library",
+        "//pkg/api/legacyscheme:go_default_library",
         "//pkg/api/v1:go_default_library",
         "//pkg/api/v1/pod:go_default_library",
         "//pkg/apis/apps:go_default_library",

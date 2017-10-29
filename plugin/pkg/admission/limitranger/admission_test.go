@@ -641,16 +641,16 @@ func TestPodLimitFuncApplyDefault(t *testing.T) {
 		requestCpu := container.Resources.Requests.Cpu().String()
 
 		if limitMemory != "10Mi" {
-			t.Errorf("Unexpected memory value %s", limitMemory)
+			t.Errorf("Unexpected limit memory value %s", limitMemory)
 		}
 		if limitCpu != "75m" {
-			t.Errorf("Unexpected cpu value %s", limitCpu)
+			t.Errorf("Unexpected limit cpu value %s", limitCpu)
 		}
 		if requestMemory != "5Mi" {
-			t.Errorf("Unexpected memory value %s", requestMemory)
+			t.Errorf("Unexpected request memory value %s", requestMemory)
 		}
 		if requestCpu != "50m" {
-			t.Errorf("Unexpected cpu value %s", requestCpu)
+			t.Errorf("Unexpected request cpu value %s", requestCpu)
 		}
 	}
 
@@ -662,16 +662,16 @@ func TestPodLimitFuncApplyDefault(t *testing.T) {
 		requestCpu := container.Resources.Requests.Cpu().String()
 
 		if limitMemory != "10Mi" {
-			t.Errorf("Unexpected memory value %s", limitMemory)
+			t.Errorf("Unexpected limit memory value %s", limitMemory)
 		}
 		if limitCpu != "75m" {
-			t.Errorf("Unexpected cpu value %s", limitCpu)
+			t.Errorf("Unexpected limit cpu value %s", limitCpu)
 		}
 		if requestMemory != "5Mi" {
-			t.Errorf("Unexpected memory value %s", requestMemory)
+			t.Errorf("Unexpected request memory value %s", requestMemory)
 		}
 		if requestCpu != "50m" {
-			t.Errorf("Unexpected cpu value %s", requestCpu)
+			t.Errorf("Unexpected request cpu value %s", requestCpu)
 		}
 	}
 }
@@ -744,7 +744,7 @@ func newHandlerForTest(c clientset.Interface) (admission.Interface, informers.Sh
 	if err != nil {
 		return nil, f, err
 	}
-	pluginInitializer := kubeadmission.NewPluginInitializer(c, f, nil, nil, nil)
+	pluginInitializer := kubeadmission.NewPluginInitializer(c, f, nil, nil, nil, nil, nil)
 	pluginInitializer.Initialize(handler)
 	err = admission.Validate(handler)
 	return handler, f, err

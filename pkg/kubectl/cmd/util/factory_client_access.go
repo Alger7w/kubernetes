@@ -45,8 +45,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	fedclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -212,26 +212,18 @@ func (f *ring0Factory) RESTClient() (*restclient.RESTClient, error) {
 	return restclient.RESTClientFor(clientConfig)
 }
 
-func (f *ring0Factory) FederationClientSetForVersion(version *schema.GroupVersion) (fedclientset.Interface, error) {
-	return f.clientCache.FederationClientSetForVersion(version)
-}
-
-func (f *ring0Factory) FederationClientForVersion(version *schema.GroupVersion) (*restclient.RESTClient, error) {
-	return f.clientCache.FederationClientForVersion(version)
-}
-
 func (f *ring0Factory) Decoder(toInternal bool) runtime.Decoder {
 	var decoder runtime.Decoder
 	if toInternal {
-		decoder = api.Codecs.UniversalDecoder()
+		decoder = legacyscheme.Codecs.UniversalDecoder()
 	} else {
-		decoder = api.Codecs.UniversalDeserializer()
+		decoder = legacyscheme.Codecs.UniversalDeserializer()
 	}
 	return decoder
 }
 
 func (f *ring0Factory) JSONEncoder() runtime.Encoder {
-	return api.Codecs.LegacyCodec(api.Registry.EnabledVersions()...)
+	return legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.EnabledVersions()...)
 }
 
 func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {
@@ -289,7 +281,7 @@ func (f *ring0Factory) MapBasedSelectorForObject(object runtime.Object) (string,
 		}
 		return kubectl.MakeLabels(t.Spec.Selector.MatchLabels), nil
 	default:
-		gvks, _, err := api.Scheme.ObjectKinds(object)
+		gvks, _, err := legacyscheme.Scheme.ObjectKinds(object)
 		if err != nil {
 			return "", err
 		}
@@ -311,7 +303,7 @@ func (f *ring0Factory) PortsForObject(object runtime.Object) ([]string, error) {
 	case *extensions.ReplicaSet:
 		return getPorts(t.Spec.Template.Spec), nil
 	default:
-		gvks, _, err := api.Scheme.ObjectKinds(object)
+		gvks, _, err := legacyscheme.Scheme.ObjectKinds(object)
 		if err != nil {
 			return nil, err
 		}
@@ -333,7 +325,7 @@ func (f *ring0Factory) ProtocolsForObject(object runtime.Object) (map[string]str
 	case *extensions.ReplicaSet:
 		return getProtocols(t.Spec.Template.Spec), nil
 	default:
-		gvks, _, err := api.Scheme.ObjectKinds(object)
+		gvks, _, err := legacyscheme.Scheme.ObjectKinds(object)
 		if err != nil {
 			return nil, err
 		}

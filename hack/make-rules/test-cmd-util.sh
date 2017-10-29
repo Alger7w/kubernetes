@@ -915,6 +915,35 @@ __EOF__
   set +o errexit
 }
 
+# runs specific kubectl create tests
+run_create_secret_tests() {
+    set -o nounset
+    set -o errexit
+
+    ### Create generic secret with explicit namespace
+    # Pre-condition: secret 'mysecret' does not exist
+    output_message=$(! kubectl get secrets mysecret 2>&1 "${kube_flags[@]}")
+    kube::test::if_has_string "${output_message}" 'secrets "mysecret" not found'
+    # Command
+    output_message=$(kubectl create "${kube_flags[@]}" secret generic mysecret --dry-run --from-literal=foo=bar -o jsonpath='{.metadata.namespace}' --namespace=user-specified)
+    # Post-condition: mysecret still not created since --dry-run was used
+    # Output from 'create' command should contain the specified --namespace value
+    failure_message=$(! kubectl get secrets mysecret 2>&1 "${kube_flags[@]}")
+    kube::test::if_has_string "${failure_message}" 'secrets "mysecret" not found'
+    kube::test::if_has_string "${output_message}" 'user-specified'
+    # Command
+    output_message=$(kubectl create "${kube_flags[@]}" secret generic mysecret --dry-run --from-literal=foo=bar -o jsonpath='{.metadata.namespace}')
+    # Post-condition: jsonpath for .metadata.namespace should be empty for object since --namespace was not explicitly specified
+    kube::test::if_empty_string "${output_message}"
+
+    kubectl create configmap tester-create-cm -o json --dry-run | kubectl create "${kube_flags[@]}" --raw /api/v1/namespaces/default/configmaps -f -
+    kubectl delete -ndefault "${kube_flags[@]}" configmap tester-create-cm
+
+    set +o nounset
+    set +o errexit
+}
+
+
 # Runs tests related to kubectl apply.
 run_kubectl_apply_tests() {
   set -o nounset
@@ -3648,6 +3677,11 @@ run_kubectl_create_error_tests() {
   fi
   rm "${ERROR_FILE}"
 
+  # Posting a pod to namespaces should fail.  Also tests --raw forcing the post location
+  [ "$( kubectl convert -f test/fixtures/doc-yaml/admin/limitrange/valid-pod.yaml -o json | kubectl create "${kube_flags[@]}" --raw /api/v1/namespaces -f - --v=8 2>&1 | grep 'cannot be handled as a Namespace: converting (v1.Pod)')" ]
+
+  [ "$( kubectl create "${kube_flags[@]}" --raw /api/v1/namespaces -f test/fixtures/doc-yaml/admin/limitrange/valid-pod.yaml --edit 2>&1 | grep 'raw and --edit are mutually exclusive')" ]
+
   set +o nounset
   set +o errexit
 }
@@ -4263,11 +4297,17 @@ run_cluster_management_tests() {
   response=$(! kubectl cordon 2>&1)
   kube::test::if_has_string "${response}" 'error\: USAGE\: cordon NODE'
 
-  ### kubectl cordon selects all nodes with an empty --selector=
+  ### kubectl cordon selects no nodes with an empty --selector=
   # Pre-condition: node "127.0.0.1" is uncordoned
   kubectl uncordon "127.0.0.1"
-  response=$(kubectl cordon --selector=)
+  response=$(! kubectl cordon --selector= 2>&1)
+  kube::test::if_has_string "${response}" 'must provide one or more resources'
+  # test=label matches our node
+  response=$(kubectl cordon --selector test=label)
   kube::test::if_has_string "${response}" 'node "127.0.0.1" cordoned'
+  # invalid=label does not match any nodes
+  response=$(kubectl cordon --selector invalid=label)
+  kube::test::if_has_not_string "${response}" 'cordoned'
   # Post-condition: node "127.0.0.1" is cordoned
   kube::test::get_object_assert "nodes 127.0.0.1" "{{.spec.unschedulable}}" 'true'
 
@@ -4547,8 +4587,6 @@ runTests() {
   fi
 
   if kube::test::if_supports_resource "${pods}" ; then
-    # TODO: Move apply tests to run on rs instead of pods so that they can be
-    # run for federation apiserver as well.
     record_command run_kubectl_apply_tests
     record_command run_kubectl_run_tests
     record_command run_kubectl_create_filter_tests
@@ -4563,9 +4601,15 @@ runTests() {
   ###############
 
   if kube::test::if_supports_resource "${pods}" ; then
-    # TODO: Move get tests to run on rs instead of pods so that they can be
-    # run for federation apiserver as well.
     record_command run_kubectl_get_tests
+  fi
+
+
+  ######################
+  # Create             #
+  ######################
+  if kube::test::if_supports_resource "${secrets}" ; then
+    record_command run_create_secret_tests
   fi
 
   ##################
@@ -4573,8 +4617,6 @@ runTests() {
   ##################
 
   if kube::test::if_supports_resource "${pods}" ; then
-    # TODO: Move request timeout tests to run on rs instead of pods so that they
-    # can be run for federation apiserver as well.
     record_command run_kubectl_request_timeout_tests
   fi
 

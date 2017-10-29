@@ -31,6 +31,7 @@ go_library(
     importpath = "k8s.io/kubernetes/pkg/kubelet",
     deps = [
         "//pkg/api:go_default_library",
+        "//pkg/api/legacyscheme:go_default_library",
         "//pkg/api/v1:go_default_library",
         "//pkg/api/v1/helper:go_default_library",
         "//pkg/api/v1/helper/qos:go_default_library",
@@ -167,8 +168,8 @@ go_test(
     importpath = "k8s.io/kubernetes/pkg/kubelet",
     library = ":go_default_library",
     deps = [
-        "//pkg/api:go_default_library",
         "//pkg/api/install:go_default_library",
+        "//pkg/api/legacyscheme:go_default_library",
         "//pkg/capabilities:go_default_library",
         "//pkg/cloudprovider/providers/fake:go_default_library",
         "//pkg/kubelet/apis:go_default_library",
@@ -259,7 +260,6 @@ filegroup(
         "//pkg/kubelet/configmap:all-srcs",
         "//pkg/kubelet/container:all-srcs",
         "//pkg/kubelet/custommetrics:all-srcs",
-        "//pkg/kubelet/deviceplugin:all-srcs",
         "//pkg/kubelet/dockershim:all-srcs",
         "//pkg/kubelet/envvars:all-srcs",
         "//pkg/kubelet/events:all-srcs",

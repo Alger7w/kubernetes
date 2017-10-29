@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest/fake"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -217,7 +218,7 @@ func TestEdit(t *testing.T) {
 				versionedAPIPath = "/apis/" + mapping.GroupVersionKind.Group + "/" + mapping.GroupVersionKind.Version
 			}
 			return &fake.RESTClient{
-				APIRegistry:          api.Registry,
+				GroupVersion:         legacyscheme.Registry.GroupOrDie(api.GroupName).GroupVersion,
 				VersionedAPIPath:     versionedAPIPath,
 				NegotiatedSerializer: unstructuredSerializer,
 				Client:               fake.CreateHTTPClient(reqResp),
